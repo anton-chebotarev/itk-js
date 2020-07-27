@@ -1,0 +1,3 @@
+[submodule "src/libde265"]
+	path = src/libde265
+	url = https://github.com/anton-chebotarev/libde265.git
