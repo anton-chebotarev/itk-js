@@ -1,0 +1,5 @@
+Encode (nrrd -> ihdr+hevc):
+  -n "d:\in.nrrd" -i "d:\out.ihdr" -m encode -c -f "d:\ffmpeg-4.2.3-win64.exe"
+  
+Decode (ihdr+hevc -> nrrd):
+  -n "d:\out.nrrd" -i "d:\out.ihdr" -m decode -c -f "d:\ffmpeg-4.2.3-win64.exe"
