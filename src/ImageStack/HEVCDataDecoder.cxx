@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include <iomanip>
-#include <math.h>
 
 namespace
   {
@@ -45,7 +44,7 @@ namespace itkjs
       uint16_t* p_buffer16 = reinterpret_cast<uint16_t*>(op_frame_buffer);
 
       std::unique_ptr<de265_decoder_context, decltype(&de265_free_decoder)> p_ctx(de265_new_decoder(), de265_free_decoder);
-      //err = de265_start_worker_threads(p_ctx.get(), 8);
+      //_Checked(de265_start_worker_threads(p_ctx.get(), 16));
     
       uint8_t* p_input_buffer = reinterpret_cast<uint8_t*>(ip_data_buffer);
       unsigned remaining = i_data_buffer_size;
@@ -126,30 +125,12 @@ namespace itkjs
             }
 
           ++num_frames;
-          mp_progress_reporter->OnProgress(num_frames, i_count);
+          mp_progress_reporter->OnDecodingProgress(num_frames, i_count);
           }
         }
 
       if (num_frames != i_count)
         throw std::runtime_error("Invalid input data");
-      }
-      
-    ////////////////////////////////////////////////////////////////////////
-      
-    void NullDecodingProgressReporter::OnProgress(unsigned /*i_frame_number*/, unsigned /*i_frames_total*/) const
-      {
-      }
-      
-    ////////////////////////////////////////////////////////////////////////
-      
-    StdoutDecodingProgressReporter::StdoutDecodingProgressReporter(const std::string& i_stdout_prefix/* = "Data Decoder: "*/)
-      : m_stdout_prefix(i_stdout_prefix)
-      {
-      }
-      
-    void StdoutDecodingProgressReporter::OnProgress(unsigned /*i_frame_number*/, unsigned i_frames_total) const
-      {
-      std::cout << m_stdout_prefix << "frame decoded (" << i_frames_total << " total)" << std::endl;  
       }
       
     ////////////////////////////////////////////////////////////////////////      

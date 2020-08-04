@@ -1,6 +1,6 @@
-#include "./ImageStack/IDataDestination.h"
-#include "./ImageStack/AsyncDataLoader.h"
-#include "./ImageStack/HEVCDataDecoder.h"
+#include "./ImageStack/ImageStackBuilder.h"
+#include "./ImageStack/IAsyncDataLoader.h"
+#include "./ImageStack/IDataDecoder.h"
 
 #include <emscripten/bind.h>
 
@@ -13,8 +13,6 @@
 
 #include <libde265/de265.h>
 
-using namespace itkjs::ImageStack;
-
 namespace
   {
   void _Checked(de265_error i_err)
@@ -23,44 +21,48 @@ namespace
       throw std::runtime_error(std::string("Decoder error: ") + de265_get_error_text(i_err));
     }
     
-  class _ImageStackBuilder : public IDataDestination
+  class _ImageStackBuilder
     {
     public:
       _ImageStackBuilder()
-        : mp_data_decoder(new HEVCDataDecoder())
-        , m_dimensions{512, 512, 759}
-        , m_component_size(2)
+        : mp_impl(new itkjs::ImageStack::ImageStackBuilder())
         {
-        mp_data_loader.reset(new AsyncDataLoader(*this));
-        mp_data_loader->SetProgressReporter(std::unique_ptr<AsyncDataLoader::ILoadingProgressReporter>(new StdoutLoadingProgressReporter()));        
-        mp_data_decoder->SetProgressReporter(std::unique_ptr<HEVCDataDecoder::IDecodingProgressReporter>(new StdoutDecodingProgressReporter()));
         }
         
-      void LoadData(const std::string& i_url)
+      void OnLoadingProgress(emscripten::val i_callback)
         {
-        mp_data_loader->LoadDataAsync(i_url);
+        mp_impl->OnLoadingProgress(
+          [i_callback](unsigned i_bytes_loaded, unsigned i_bytes_total) -> void
+            {
+            i_callback(i_bytes_loaded, i_bytes_total);
+            } );
         }
-    
-      // IDataDestination
-      virtual void ProcessLoadedData(void* ip_buffer, unsigned i_buffer_size) override
+      
+      void OnDecodingProgress(emscripten::val i_callback)
         {
-        m_frame_buffer.resize(m_dimensions[0] * m_dimensions[1] * m_dimensions[2] * m_component_size);
-        mp_data_decoder->DecodeData(
-          reinterpret_cast<void*>(&m_frame_buffer[0]),
-          m_dimensions[0],
-          m_dimensions[1],
-          m_dimensions[2],
-          m_component_size,
-          ip_buffer,
-          i_buffer_size);
+        mp_impl->OnDecodingProgress(
+          [i_callback](unsigned i_frame_number, unsigned i_frames_total) -> void
+            {
+            i_callback(i_frame_number, i_frames_total);
+            } );
+        }
+        
+      void LoadDataAsync(const std::string& i_url, emscripten::val i_on_ready_callback, emscripten::val i_on_failed_callback)
+        {
+        mp_impl->LoadDataAsync(
+          i_url,
+          [i_on_ready_callback](void) -> void
+            {
+            i_on_ready_callback();
+            },
+          [i_on_failed_callback](const char* ip_description) -> void
+            {
+            i_on_failed_callback(ip_description);
+            } );
         }
         
     private:
-      std::vector<uint8_t> m_frame_buffer;
-      unsigned m_dimensions[3];
-      unsigned m_component_size;
-      std::unique_ptr<AsyncDataLoader> mp_data_loader;
-      std::unique_ptr<HEVCDataDecoder> mp_data_decoder;
+      std::unique_ptr<itkjs::ImageStack::ImageStackBuilder> mp_impl;
     };
           
   void _Info()
@@ -78,5 +80,7 @@ EMSCRIPTEN_BINDINGS(Test)
 
   class_<_ImageStackBuilder>("ImageStackBuilder")
     .constructor<>()
-    .function("LoadData", &_ImageStackBuilder::LoadData);
+    .function("OnLoadingProgress", &_ImageStackBuilder::OnLoadingProgress)
+    .function("OnDecodingProgress", &_ImageStackBuilder::OnDecodingProgress)
+    .function("LoadDataAsync", &_ImageStackBuilder::LoadDataAsync);
   }

@@ -22,7 +22,7 @@ target_link_libraries(${target} LINK_PUBLIC ${ITK_LIBRARIES})
 #itk_module_target_label(${wasm_target})
 #itk_module_target_export(${wasm_target})
 #itk_module_target_install(${wasm_target})
-#set_property(TARGET ${wasm_target} APPEND_STRING PROPERTY LINK_FLAGS " --bind -s ASSERTIONS=1 -s TOTAL_MEMORY=268435456 -s ALLOW_MEMORY_GROWTH=1")
+#set_property(TARGET ${wasm_target} APPEND_STRING PROPERTY LINK_FLAGS " --bind -s ASSERTIONS=1 -s TOTAL_MEMORY=536870912 -s ALLOW_MEMORY_GROWTH=1")
 #set_property(TARGET ${wasm_target} APPEND_STRING PROPERTY LINK_FLAGS " -s EXPORT_NAME=Version -s WASM_ASYNC_COMPILATION=0 -s MODULARIZE=1 -s WASM=1 -lworkerfs.js -s EXIT_RUNTIME=0 -s INVOKE_RUN=1")
 #target_link_libraries(${wasm_target} LINK_PUBLIC ${ITK_LIBRARIES})
 

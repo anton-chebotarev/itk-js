@@ -13,6 +13,7 @@ namespace itkjs
         virtual ~IDataDestination() = default;
         
         virtual void ProcessLoadedData(void* /*ip_buffer*/, unsigned /*i_buffer_size*/) = 0;
+        virtual void OnDataLoadingFailed(const char* ip_description) = 0;
       };
       
     ////////////////////////////////////////////////////////////////////////
