@@ -1,4 +1,4 @@
-itk_module(Trial
+itk_module(ITKJS
   DEPENDS
     ITKCommon
   COMPILE_DEPENDS
@@ -7,6 +7,6 @@ itk_module(Trial
   FACTORY_NAMES
   EXCLUDE_FROM_DEFAULT
   DESCRIPTION
-    "Trial"
+    "ITKJS"
   ENABLE_SHARED
 )

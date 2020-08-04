@@ -3,10 +3,12 @@
         <head>
             <meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
             <title>itkjs</title>
-            <script src="Test.js"></script>
+            <script src="ImageStack.js"></script>
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
-                    new Module.Test();
+                    Module.Info();
+                    
+                    new Module.ImageStackBuilder().LoadData("12bit_images.hevc");
                 });
             </script>
         </head>

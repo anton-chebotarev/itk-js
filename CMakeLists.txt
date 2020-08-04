@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10.2)
-project(Trial)
+project(ITKJS)
 
-set(Trial_LIBRARIES Trial)
+set(ITKJS_LIBRARIES ITKJS)
 
 if(NOT ITK_SOURCE_DIR)
   find_package(ITK 5.0 REQUIRED)
