@@ -6,7 +6,7 @@ set(ITKJS_SRCS
   )
 itk_module_add_library(ITKJS ${ITKJS_SRCS})
 
-file(GLOB SOURCES Test.cxx ./ImageStack/*.cxx ./libde265/*.o)
+file(GLOB SOURCES Bindings.cxx ./ImageStack/*.cxx ./libde265/*.o)
 
 set(target ImageStack)
 add_executable(${target} ${SOURCES})

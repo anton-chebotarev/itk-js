@@ -2,8 +2,12 @@
 
 #include "WgetAsyncDataLoader.h"
 #include "HEVCDataDecoder.h"
+#include "HeaderParser.h"
+#include "Header.h"
+#include "ImageStack.h"
 
-#include <vector>
+#include <itkImportImageFilter.h>
+
 #include <sstream>
 
 namespace itkjs
@@ -15,6 +19,7 @@ namespace itkjs
             
     ImageStackBuilder::ImageStackBuilder()
       : mp_data_decoder(new HEVCDataDecoder())
+      , mp_header_parser(new HeaderParser())
       {
       mp_header_processor.reset(new _DataDestinationProxy(*this, &ImageStackBuilder::_ProcessLoadedHeader, &ImageStackBuilder::_OnHeaderLoadingFailed));
       mp_data_processor.reset(new _DataDestinationProxy(*this, &ImageStackBuilder::_ProcessLoadedData, &ImageStackBuilder::_OnDataLoadingFailed));
@@ -77,103 +82,15 @@ namespace itkjs
       mp_header_loader->LoadDataAsync(i_header_url);
       }
       
-    unsigned ImageStackBuilder::_GetComponentSize(const std::string& i_component_type_str) const
-      {
-      if (i_component_type_str == "unsigned_char")
-        return sizeof(unsigned char);
-      if (i_component_type_str == "char")
-        return sizeof(char);
-      if (i_component_type_str == "unsigned_short")
-        return sizeof(unsigned short);
-      if (i_component_type_str == "short")
-        return sizeof(short);
-      throw std::runtime_error("Unsupported component type");
-      }
-      
     void ImageStackBuilder::_ProcessLoadedHeader(void* ip_buffer, unsigned i_buffer_size)
       {
       try
         {
         m_status_callback("Parsing header ...");
         
-        std::unique_ptr<_Header> p_header(new _Header());
-        
-        std::string header_str(reinterpret_cast<char*>(ip_buffer), i_buffer_size);        
-        std::istringstream ss(header_str);
+        mp_header = mp_header_parser->ParseHeader(ip_buffer, i_buffer_size);
 
-        std::string line;
-        while (std::getline(ss, line))
-          {
-          if (line.length() != 0 && line[0] != '#')
-            {
-            size_t pos = line.find(':');
-            if (pos != -1 && pos != line.length() - 1)
-              {
-              std::string key = line.substr(0, pos);
-              std::string val = line.substr(pos + 1, line.length() - pos - 1);
-              if (val[0] == '=')
-                {
-                continue; // metadata
-                }
-              else if (val[0] == ' ')
-                {
-                std::istringstream ss(val.substr(1, val.length() - 1));
-                std::vector<std::string> tokens;
-                std::string token;
-                while (std::getline(ss, token, ' '))
-                  {
-                  tokens.push_back(token);
-                  }
-                if (key == "component type")
-                  {
-                  p_header->component_size = _GetComponentSize(tokens[0]);
-                  }
-                else if (key == "dimensions")
-                  {
-                  if (tokens.size() == 3)
-                    {
-                    p_header->dimensions[0] = atoi(tokens[0].c_str());
-                    p_header->dimensions[1] = atoi(tokens[1].c_str());
-                    p_header->dimensions[2] = atoi(tokens[2].c_str());
-                    }
-                  }
-                else if (key == "spacing")
-                  {
-                  if (tokens.size() == 3)
-                    {
-                    p_header->spacing[0] = atof(tokens[0].c_str());
-                    p_header->spacing[1] = atof(tokens[1].c_str());
-                    p_header->spacing[2] = atof(tokens[2].c_str());
-                    }
-                  }
-                else if (key == "origin")
-                  {
-                  if (tokens.size() == 3)
-                    {
-                    p_header->origin[0] = atof(tokens[0].c_str());
-                    p_header->origin[1] = atof(tokens[1].c_str());
-                    p_header->origin[2] = atof(tokens[2].c_str());
-                    }
-                  }
-                else if (key == "directions")
-                  {
-                  if (tokens.size() == 9)
-                    {
-                    p_header->directions[0] = atof(tokens[0].c_str());
-                    p_header->directions[1] = atof(tokens[1].c_str());
-                    p_header->directions[2] = atof(tokens[2].c_str());
-                    }
-                  }
-                else if (key == "data file")
-                  {
-                  continue;
-                  }
-                }
-              }
-            }
-          }
-        
-        mp_header = std::move(p_header);
+        m_status_callback((std::ostringstream() << "Expecting " << mp_header->dimensions[2] << " frames of " << mp_header->dimensions[0] << "x" << mp_header->dimensions[1] << " pixels size (" << mp_header->component_size*8 << " bpp)").str().c_str());
       
         m_status_callback("Loading data ...");
         mp_data_loader->LoadDataAsync(m_data_url);
@@ -193,6 +110,55 @@ namespace itkjs
       m_on_failed_callback(ip_description);  
       }
       
+    template<class TPixelType>
+    typename itk::Image<TPixelType, 3>::Pointer ImageStackBuilder::_BuildImage(const Header& i_header, std::unique_ptr<uint8_t[]>&& ip_image_buffer) const
+      {
+      typedef itk::Image<TPixelType, 3> TImage;
+      typedef itk::ImportImageFilter<TPixelType, 3> TImportImageFilter;
+      
+      std::unique_ptr<TPixelType[]> p_buffer(reinterpret_cast<TPixelType*>(ip_image_buffer.release()));
+      
+      typename TImportImageFilter::Pointer p_import_image_filter = TImportImageFilter::New();
+      
+      typename TImage::IndexType start;
+      start.Fill(0);
+      typename TImage::SizeType size;
+      size[0] = i_header.dimensions[0];
+      size[1] = i_header.dimensions[1];
+      size[2] = i_header.dimensions[2];
+      typename TImage::RegionType region;
+      region.SetIndex(start);
+      region.SetSize(size);      
+      p_import_image_filter->SetRegion(region);
+      
+      itk::SpacePrecisionType spacing[3];
+      spacing[0] = i_header.spacing[0];
+      spacing[1] = i_header.spacing[1];
+      spacing[2] = i_header.spacing[2];
+      p_import_image_filter->SetSpacing(spacing);
+      
+      itk::SpacePrecisionType origin[3];
+      origin[0] = i_header.origin[0];
+      origin[1] = i_header.origin[1];
+      origin[2] = i_header.origin[2];
+      p_import_image_filter->SetOrigin(origin);
+      
+      typename TImportImageFilter::DirectionType direction;
+      for ( unsigned int r = 0; r < 3; r++ )
+        for ( unsigned int c = 0; c < 3; c++ )
+          direction[r][c] = i_header.direction[r][c];
+      p_import_image_filter->SetDirection(direction);
+           
+      p_import_image_filter->SetImportPointer(
+        p_buffer.release(),
+        size[0] * size[1] * size[2],
+        true); // owns buffer
+        
+      p_import_image_filter->Update();
+        
+      return p_import_image_filter->GetOutput();
+      }
+      
     void ImageStackBuilder::_ProcessLoadedData(void* ip_buffer, unsigned i_buffer_size)
       {
       try
@@ -202,10 +168,10 @@ namespace itkjs
         if (mp_header.get() == nullptr)
           throw std::logic_error("Header expected to be parsed before data decoding");
         
-        std::vector<uint8_t> frame_buffer(mp_header->dimensions[0] * mp_header->dimensions[1] * mp_header->dimensions[2] * mp_header->component_size);
+        std::unique_ptr<uint8_t[]> p_frame_buffer(new uint8_t[mp_header->dimensions[0] * mp_header->dimensions[1] * mp_header->dimensions[2] * mp_header->component_size]);
           
         mp_data_decoder->DecodeData(
-          reinterpret_cast<void*>(&frame_buffer[0]),
+          reinterpret_cast<void*>(p_frame_buffer.get()),
           mp_header->dimensions[0],
           mp_header->dimensions[1],
           mp_header->dimensions[2],
@@ -213,7 +179,14 @@ namespace itkjs
           ip_buffer,
           i_buffer_size);
           
-        m_on_ready_callback();
+        m_status_callback("Building Image Stack ...");
+        
+        ImageStack::_TImageStack::Pointer p_image_stack = _BuildImage<ImageStack::_TImageStack::PixelType>(*mp_header, std::move(p_frame_buffer));
+        
+        ImageStack::_TImageStack::SizeType size = p_image_stack->GetLargestPossibleRegion().GetSize();
+        m_status_callback((std::ostringstream() << size[0] << "x" << size[1] << "x" << size[2] << " 16bit image stack is ready").str().c_str());
+          
+        m_on_ready_callback(std::unique_ptr<ImageStack>(new ImageStack(p_image_stack)));
         }
       catch (const std::exception& i_e)
         {
@@ -221,7 +194,7 @@ namespace itkjs
         }
       catch (...)
         {
-        m_on_failed_callback("Exception during data decoding.");
+        m_on_failed_callback("Exception during data decoding/image stack building.");
         }
       }
       

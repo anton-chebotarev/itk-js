@@ -3,6 +3,8 @@
 
 #include "IDataDestination.h"
 
+#include <itkImage.h>
+
 #include <memory>
 #include <string>
 
@@ -15,13 +17,18 @@ namespace itkjs
     
     class IAsyncDataLoader;
     class IDataDecoder;
+    class IHeaderParser;
+    
+    struct Header;
+    
+    class ImageStack;
       
     ////////////////////////////////////////////////////////////////////////
           
     class ImageStackBuilder
       {
       public:
-        typedef std::function<void(void)> TOnReadyCallback;
+        typedef std::function<void(std::unique_ptr<ImageStack>&&)> TOnReadyCallback;
         typedef std::function<void(const char*)> TOnFailedCallback;
         typedef std::function<void(const char*)> TStatusCallback;
         typedef std::function<void(int, unsigned, unsigned)> TOnLoadingProgressCallback;
@@ -29,6 +36,7 @@ namespace itkjs
         
       public:
         ImageStackBuilder();
+        ~ImageStackBuilder() = default;
         
         void OnLoadingProgress(TOnLoadingProgressCallback i_callback);
         void OnDecodingProgress(TOnDecodingProgressCallback i_callback);
@@ -43,34 +51,30 @@ namespace itkjs
       private:
         class _DataDestinationProxy;
         
-        struct _Header
-          {
-          unsigned component_size;
-          unsigned dimensions[3];
-          float spacing[3];
-          float origin[3];
-          float directions[3];
-          };
-        
       private:        
         friend class _DataDestinationProxy;
-        unsigned _GetComponentSize(const std::string& i_component_type_str) const;
         void _ProcessLoadedHeader(void* ip_buffer, unsigned i_buffer_size);
         void _OnHeaderLoadingFailed(const char* ip_description);
         void _ProcessLoadedData(void* ip_buffer, unsigned i_buffer_size);
         void _OnDataLoadingFailed(const char* ip_description);
         
+        template<class TPixelType>
+        typename itk::Image<TPixelType, 3>::Pointer _BuildImage(const Header& i_header, std::unique_ptr<uint8_t[]>&& ip_image_buffer) const;
+        
       private:
-        std::unique_ptr<_Header> mp_header;
+        std::unique_ptr<Header> mp_header;
+        
         TOnReadyCallback m_on_ready_callback;
         TOnFailedCallback m_on_failed_callback;
         TStatusCallback m_status_callback;
         std::string m_data_url;
+        
         std::unique_ptr<IAsyncDataLoader> mp_header_loader;
         std::unique_ptr<IAsyncDataLoader> mp_data_loader;
-        std::unique_ptr<IDataDecoder> mp_data_decoder;
         std::unique_ptr<IDataDestination> mp_header_processor;
         std::unique_ptr<IDataDestination> mp_data_processor;
+        std::unique_ptr<IDataDecoder> mp_data_decoder;
+        std::unique_ptr<IHeaderParser> mp_header_parser;
       };
       
     ////////////////////////////////////////////////////////////////////////

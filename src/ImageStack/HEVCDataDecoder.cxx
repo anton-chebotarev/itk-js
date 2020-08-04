@@ -32,16 +32,16 @@ namespace itkjs
       }
       
     void HEVCDataDecoder::DecodeData(
-      void* op_frame_buffer,
+      void* op_image_buffer,
       unsigned i_width,
       unsigned i_height,
       unsigned i_count,
       unsigned i_component_size,
       void* ip_data_buffer,
-      unsigned i_data_buffer_size)
+      unsigned i_data_buffer_size) const
       {
-      uint8_t* p_buffer = reinterpret_cast<uint8_t*>(op_frame_buffer);
-      uint16_t* p_buffer16 = reinterpret_cast<uint16_t*>(op_frame_buffer);
+      uint8_t* p_buffer = reinterpret_cast<uint8_t*>(op_image_buffer);
+      uint16_t* p_buffer16 = reinterpret_cast<uint16_t*>(op_image_buffer);
 
       std::unique_ptr<de265_decoder_context, decltype(&de265_free_decoder)> p_ctx(de265_new_decoder(), de265_free_decoder);
       //_Checked(de265_start_worker_threads(p_ctx.get(), 16));

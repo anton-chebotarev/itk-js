@@ -1,7 +1,7 @@
-#ifndef IHeaderParser_H
-#define IHeaderParser_H
+#ifndef HeaderParser_H
+#define HeaderParser_H
 
-#include <memory>
+#include "IHeaderParser.h"
 
 namespace itkjs
   {
@@ -9,21 +9,13 @@ namespace itkjs
     {
       
     ////////////////////////////////////////////////////////////////////////
-    
-    struct Header;
-      
-    ////////////////////////////////////////////////////////////////////////
           
-    class IHeaderParser
+    class HeaderParser : public IHeaderParser
       {
-      public:
-        
-      public:
-        virtual ~IHeaderParser() = default;
-        
+      public:        
         virtual std::unique_ptr<Header> ParseHeader(
           void* ip_data_buffer,
-          unsigned i_data_buffer_size) const = 0; 
+          unsigned i_data_buffer_size) const override;
       };
       
     ////////////////////////////////////////////////////////////////////////

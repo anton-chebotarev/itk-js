@@ -25,7 +25,7 @@ namespace itkjs
           unsigned i_count,
           unsigned i_component_size,
           void* ip_data_buffer,
-          unsigned i_data_buffer_size) = 0;
+          unsigned i_data_buffer_size) const = 0;
       };
       
     ////////////////////////////////////////////////////////////////////////

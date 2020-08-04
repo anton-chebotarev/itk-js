@@ -1,6 +1,9 @@
 #include "./ImageStack/ImageStackBuilder.h"
 #include "./ImageStack/IAsyncDataLoader.h"
 #include "./ImageStack/IDataDecoder.h"
+#include "./ImageStack/IHeaderParser.h"
+#include "./ImageStack/Header.h"
+#include "./ImageStack/ImageStack.h"
 
 #include <emscripten/bind.h>
 
@@ -15,11 +18,27 @@
 
 namespace
   {
-  void _Checked(de265_error i_err)
+  class _ImageStack
     {
-    if (i_err != DE265_OK)
-      throw std::runtime_error(std::string("Decoder error: ") + de265_get_error_text(i_err));
-    }
+    public:
+      explicit _ImageStack(std::unique_ptr<itkjs::ImageStack::ImageStack>&& ip_image_stack)
+        : mp_image_stack(std::move(ip_image_stack))
+        {
+        }
+        
+      unsigned GetDimensions(unsigned i_index) const
+        {
+        return mp_image_stack->GetDimensions(i_index);
+        }
+      
+      unsigned GetComponentSize() const
+        {
+        return mp_image_stack->GetComponentSize();
+        }
+      
+    private:
+      std::unique_ptr<itkjs::ImageStack::ImageStack> mp_image_stack;
+    };
     
   class _ImageStackBuilder
     {
@@ -52,9 +71,9 @@ namespace
         mp_impl->LoadDataAsync(
           i_header_url,
           i_data_url,
-          [i_on_ready_callback](void) -> void
+          [i_on_ready_callback](std::unique_ptr<itkjs::ImageStack::ImageStack>&& ip_image_stack) -> void
             {
-            i_on_ready_callback();
+            i_on_ready_callback(_ImageStack(std::move(ip_image_stack)));
             },
           [i_on_failed_callback](const char* ip_description) -> void
             {
@@ -83,9 +102,13 @@ EMSCRIPTEN_BINDINGS(Test)
   {
   function("Info", &_Info);
 
+  class_<_ImageStack>("ImageStack")
+    .function("getDimensions", &_ImageStack::GetDimensions)
+    .function("getComponentSize", &_ImageStack::GetComponentSize);
+
   class_<_ImageStackBuilder>("ImageStackBuilder")
     .constructor<>()
-    .function("OnLoadingProgress", &_ImageStackBuilder::OnLoadingProgress)
-    .function("OnDecodingProgress", &_ImageStackBuilder::OnDecodingProgress)
-    .function("LoadDataAsync", &_ImageStackBuilder::LoadDataAsync);
+    .function("onLoadingProgress", &_ImageStackBuilder::OnLoadingProgress)
+    .function("onDecodingProgress", &_ImageStackBuilder::OnDecodingProgress)
+    .function("loadDataAsync", &_ImageStackBuilder::LoadDataAsync);
   }
