@@ -9,9 +9,20 @@
                     Module.Info();
                     
                     var builder = new Module.ImageStackBuilder();
-                    builder.OnLoadingProgress(function(bytes_loaded, bytes_total) { console.log("Loading data: " + bytes_loaded + " of " + bytes_total + " bytes loaded"); });
-                    builder.OnDecodingProgress(function(frames_loaded, frames_total) { console.log("Decoding data: frame decoded (" + frames_total + " total)"); });
-                    builder.LoadDataAsync("12bit_images.hevc", function() { console.log("Succeeded"); }, function(description) { console.log("Failed: " + description); } );
+                    builder.OnLoadingProgress(function(id, bytes_loaded, bytes_total) { console.log("  [" + id + "]: " + bytes_loaded + " of " + bytes_total + " bytes loaded"); });
+                    builder.OnDecodingProgress(function(frames_loaded, frames_total) { console.log("  frame decoded (" + frames_total + " total)"); });
+                    builder.LoadDataAsync(
+                      "12bit_images.ihdr",
+                      "12bit_images.hevc",
+                      function() {
+                        console.log("SUCCEEDED");
+                      },
+                      function(description) {
+                        console.log("FAILED: " + description);
+                      },
+                      function(description) {
+                        console.log("Status: " + description);
+                      });
                 });
             </script>
         </head>

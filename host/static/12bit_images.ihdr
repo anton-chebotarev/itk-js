@@ -1,0 +1,10 @@
+# Created by itkFFmpegImageIO using FFmpeg video converter
+component type: unsigned_short
+dimensions: 512 512 759
+spacing: 0.490234375 0.490234375 0.5
+origin: -31.375 279.59075927734375 -391.489990234375
+directions: 1 0 0 0 -1 0 0 0 1
+data file: 12bit_images.hevc
+encoding parameters: -c:v libx265 -x265-params "profile=monochrome12:crf=0:preset=veryslow:qp=0:bframes=0:no-deblock=1:no-sao=1:no-weightp=1:no-weightb=1:no-b-intra=1:qpmax=0:cu-lossless=1" -pix_fmt gray12le
+IntegrityInfo.PrePlanningUUID:=2d101fcd-1cb8-4d24-a727-de1f74e4908d
+Object.CaseCode:=DJ19-COF-MOP

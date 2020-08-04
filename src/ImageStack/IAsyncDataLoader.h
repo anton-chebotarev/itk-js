@@ -30,7 +30,7 @@ namespace itkjs
       {
       public:
         virtual ~ILoadingProgressReporter() = default;        
-        virtual void OnLoadingProgress(unsigned /*i_bytes_loaded*/, unsigned /*i_bytes_total*/) const = 0;
+        virtual void OnLoadingProgress(int /*i_id*/, unsigned /*i_bytes_loaded*/, unsigned /*i_bytes_total*/) const = 0;
       };
       
     ////////////////////////////////////////////////////////////////////////
@@ -38,7 +38,7 @@ namespace itkjs
     class NullLoadingProgressReporter : public IAsyncDataLoader::ILoadingProgressReporter
       {
       public:
-        virtual void OnLoadingProgress(unsigned /*i_bytes_loaded*/, unsigned /*i_bytes_total*/) const override {}
+        virtual void OnLoadingProgress(int /*i_id*/, unsigned /*i_bytes_loaded*/, unsigned /*i_bytes_total*/) const override {}
       };
       
     ////////////////////////////////////////////////////////////////////////

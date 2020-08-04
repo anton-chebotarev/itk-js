@@ -48,7 +48,7 @@ namespace itkjs
       
         void OnSuccess(void* ip_received_buffer, unsigned i_size_in_bytes);
         void OnFailure(int i_http_error_code, const char* i_status_description);
-        void OnProgress(unsigned i_bytes_loaded, unsigned i_bytes_total);
+        void OnProgress(int i_id, unsigned i_bytes_loaded, unsigned i_bytes_total);
         
       private:
         WgetAsyncDataLoader& mr_data_loader;

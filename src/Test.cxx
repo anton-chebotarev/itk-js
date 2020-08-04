@@ -32,9 +32,9 @@ namespace
       void OnLoadingProgress(emscripten::val i_callback)
         {
         mp_impl->OnLoadingProgress(
-          [i_callback](unsigned i_bytes_loaded, unsigned i_bytes_total) -> void
+          [i_callback](int i_id, unsigned i_bytes_loaded, unsigned i_bytes_total) -> void
             {
-            i_callback(i_bytes_loaded, i_bytes_total);
+            i_callback(i_id, i_bytes_loaded, i_bytes_total);
             } );
         }
       
@@ -47,17 +47,22 @@ namespace
             } );
         }
         
-      void LoadDataAsync(const std::string& i_url, emscripten::val i_on_ready_callback, emscripten::val i_on_failed_callback)
+      void LoadDataAsync(std::string i_header_url, std::string i_data_url, emscripten::val i_on_ready_callback, emscripten::val i_on_failed_callback, emscripten::val i_status_callback)
         {
         mp_impl->LoadDataAsync(
-          i_url,
+          i_header_url,
+          i_data_url,
           [i_on_ready_callback](void) -> void
             {
             i_on_ready_callback();
             },
           [i_on_failed_callback](const char* ip_description) -> void
             {
-            i_on_failed_callback(ip_description);
+            i_on_failed_callback(std::string(ip_description));
+            },
+          [i_status_callback](const char* ip_description) -> void
+            {
+            i_status_callback(std::string(ip_description));
             } );
         }
         

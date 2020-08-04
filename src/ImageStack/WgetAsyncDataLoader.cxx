@@ -53,7 +53,7 @@ namespace itkjs
           },
         [](unsigned ih_request, void* ip_user_data, int i_bytes_loaded, int i_bytes_total) -> void
           {                 // onprogress (em_async_wget2_data_onprogress_func) – Callback called (regularly) during load of the file to update progress.
-          reinterpret_cast<WgetAsyncDataLoader::CallbacksHandler*>(ip_user_data)->OnProgress(static_cast<unsigned>(i_bytes_loaded), static_cast<unsigned>(i_bytes_total));
+          reinterpret_cast<WgetAsyncDataLoader::CallbacksHandler*>(ip_user_data)->OnProgress(ih_request, static_cast<unsigned>(i_bytes_loaded), static_cast<unsigned>(i_bytes_total));
           } );
       }
       
@@ -79,14 +79,14 @@ namespace itkjs
     void WgetAsyncDataLoader::CallbacksHandler::OnFailure(int i_http_error_code, const char* i_status_description)
       {
       mr_data_loader.mh_loader_handle = -1;
-      std::stringstream ss;
+      std::ostringstream ss;
       ss << "HTTP_" << i_http_error_code << ": " << i_status_description;
       mr_data_loader.mr_data_destination.OnDataLoadingFailed(ss.str().c_str()); 
       }
       
-    void WgetAsyncDataLoader::CallbacksHandler::OnProgress(unsigned i_bytes_loaded, unsigned i_bytes_total)
+    void WgetAsyncDataLoader::CallbacksHandler::OnProgress(int i_id, unsigned i_bytes_loaded, unsigned i_bytes_total)
       {
-      mr_data_loader.mp_progress_reporter->OnLoadingProgress(i_bytes_loaded, i_bytes_total);              
+      mr_data_loader.mp_progress_reporter->OnLoadingProgress(i_id, i_bytes_loaded, i_bytes_total);              
       }
       
     ////////////////////////////////////////////////////////////////////////      
