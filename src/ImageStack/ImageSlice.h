@@ -1,5 +1,5 @@
-#ifndef ImageStack_H
-#define ImageStack_H
+#ifndef ImageSlice_H
+#define ImageSlice_H
 
 #include "IImage.h"
 
@@ -12,30 +12,32 @@ namespace itkjs
       
     ////////////////////////////////////////////////////////////////////////
     
-    class ImageSlice;
+    class ImageView;
+    
+    struct ContrastFunction;
       
     ////////////////////////////////////////////////////////////////////////
           
-    class ImageStack : public IImage
+    class ImageSlice : public IImage
       {        
       private:
-        typedef itk::Image<unsigned short, 3> _TImageStack;
+        typedef itk::Image<unsigned short, 3> _TImageSlice;
         
       private:
-        friend class ImageStackBuilder;
-        explicit ImageStack(_TImageStack::Pointer ip_image_stack);
+        friend class ImageStack;
+        explicit ImageSlice(_TImageSlice::Pointer ip_image_stack);
       
       public:
-        ~ImageStack() = default;
+        ~ImageSlice() = default;
         
         // IImage
         virtual unsigned GetDimensions(unsigned i_index) const override;
         virtual unsigned GetComponentSize() const override;
         
-        std::unique_ptr<ImageSlice> GetSlice(unsigned i_index) const;
+        std::unique_ptr<ImageView> CalculateView(const ContrastFunction& i_contrast_function) const;
         
       private:
-        _TImageStack::Pointer mp_image_stack;
+        _TImageSlice::Pointer mp_image_slice;
       };
       
     ////////////////////////////////////////////////////////////////////////

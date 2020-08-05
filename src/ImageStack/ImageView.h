@@ -1,5 +1,5 @@
-#ifndef ImageStack_H
-#define ImageStack_H
+#ifndef ImageView_H
+#define ImageView_H
 
 #include "IImage.h"
 
@@ -11,31 +11,27 @@ namespace itkjs
     {
       
     ////////////////////////////////////////////////////////////////////////
-    
-    class ImageSlice;
-      
-    ////////////////////////////////////////////////////////////////////////
           
-    class ImageStack : public IImage
+    class ImageView : public IImage
       {        
       private:
-        typedef itk::Image<unsigned short, 3> _TImageStack;
+        typedef itk::Image<unsigned char, 3> _TImageView;
         
       private:
-        friend class ImageStackBuilder;
-        explicit ImageStack(_TImageStack::Pointer ip_image_stack);
+        friend class ImageSlice;
+        explicit ImageView(_TImageView::Pointer ip_image_view);
       
       public:
-        ~ImageStack() = default;
+        ~ImageView() = default;
         
         // IImage
         virtual unsigned GetDimensions(unsigned i_index) const override;
         virtual unsigned GetComponentSize() const override;
         
-        std::unique_ptr<ImageSlice> GetSlice(unsigned i_index) const;
+        void FillRGBAPixelBuffer(unsigned char* ip_output_buf, unsigned i_output_buf_size) const;
         
       private:
-        _TImageStack::Pointer mp_image_stack;
+        _TImageView::Pointer mp_image_view;
       };
       
     ////////////////////////////////////////////////////////////////////////

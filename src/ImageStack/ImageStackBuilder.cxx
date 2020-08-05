@@ -183,7 +183,7 @@ namespace itkjs
         
         ImageStack::_TImageStack::Pointer p_image_stack = _BuildImage<ImageStack::_TImageStack::PixelType>(*mp_header, std::move(p_frame_buffer));
         
-        ImageStack::_TImageStack::SizeType size = p_image_stack->GetLargestPossibleRegion().GetSize();
+        ImageStack::_TImageStack::SizeType size = p_image_stack->GetBufferedRegion().GetSize();
         m_status_callback((std::ostringstream() << size[0] << "x" << size[1] << "x" << size[2] << " 16bit image stack is ready").str().c_str());
           
         m_on_ready_callback(std::unique_ptr<ImageStack>(new ImageStack(p_image_stack)));

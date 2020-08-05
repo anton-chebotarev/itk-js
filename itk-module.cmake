@@ -1,6 +1,7 @@
 itk_module(ITKJS
   DEPENDS
     ITKCommon
+    ITKImageIntensity
   COMPILE_DEPENDS
   PRIVATE_DEPENDS
   TEST_DEPENDS

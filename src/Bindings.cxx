@@ -1,9 +1,12 @@
-#include "./ImageStack/ImageStackBuilder.h"
 #include "./ImageStack/IAsyncDataLoader.h"
 #include "./ImageStack/IDataDecoder.h"
 #include "./ImageStack/IHeaderParser.h"
 #include "./ImageStack/Header.h"
+#include "./ImageStack/ContrastFunction.h"
+#include "./ImageStack/ImageStackBuilder.h"
 #include "./ImageStack/ImageStack.h"
+#include "./ImageStack/ImageSlice.h"
+#include "./ImageStack/ImageView.h"
 
 #include <emscripten/bind.h>
 
@@ -18,26 +21,115 @@
 
 namespace
   {
-  class _ImageStack
+
+  void _Info()
+    {
+    std::cout << "ImageStack Module: " << std::endl;
+    std::cout << "  ITK Version - " << itk::Version::GetITKVersion() << std::endl;
+    std::cout << "  libde265 Version - " << de265_get_version() << std::endl;
+    }
+    
+  template<class TImage>
+  class _Image
     {
     public:
-      explicit _ImageStack(std::unique_ptr<itkjs::ImageStack::ImageStack>&& ip_image_stack)
-        : mp_image_stack(std::move(ip_image_stack))
+      typedef std::unique_ptr<TImage> TImagePtr;
+      explicit _Image(std::unique_ptr<TImage>&& ip_image)
+        : mp_image(std::move(ip_image))
+        {
+        }   
+    protected:
+      const TImage& _GetImage() const
+        {
+        return *mp_image;
+        }
+      std::unique_ptr<TImage>& _AccessImagePtr()
+        {
+        return mp_image;
+        }
+    private:
+      std::unique_ptr<TImage> mp_image;
+    };
+
+  class _ImageView : public _Image<itkjs::ImageStack::ImageView>
+    {
+    public:
+      explicit _ImageView(TImagePtr&& ip_image)
+        : _Image(std::move(ip_image))
         {
         }
-        
+      void Dispose()
+        {
+        _AccessImagePtr().reset();
+        }        
       unsigned GetDimensions(unsigned i_index) const
         {
-        return mp_image_stack->GetDimensions(i_index);
-        }
-      
+        return _GetImage().GetDimensions(i_index);
+        }      
       unsigned GetComponentSize() const
         {
-        return mp_image_stack->GetComponentSize();
+        return _GetImage().GetComponentSize();
         }
-      
-    private:
-      std::unique_ptr<itkjs::ImageStack::ImageStack> mp_image_stack;
+      void FillRGBAPixelBuffer(std::uintptr_t i_output_buf_ptr, unsigned i_output_buf_size) const
+        {
+        auto* p_output_buf = reinterpret_cast<unsigned char*>(i_output_buf_ptr);
+        _GetImage().FillRGBAPixelBuffer(p_output_buf, i_output_buf_size);
+        }
+    };
+
+  class _ImageSlice : public _Image<itkjs::ImageStack::ImageSlice>
+    {
+    public:
+      explicit _ImageSlice(TImagePtr&& ip_image)
+        : _Image(std::move(ip_image))
+        {
+        }
+      void Dispose()
+        {
+        _AccessImagePtr().reset();
+        }
+      unsigned GetDimensions(unsigned i_index) const
+        {
+        return _GetImage().GetDimensions(i_index);
+        }      
+      unsigned GetComponentSize() const
+        {
+        return _GetImage().GetComponentSize();
+        }
+      _ImageView CalculateView(unsigned short i_contrast_from_min, unsigned short i_contrast_from_max, unsigned char i_contrast_to_min, unsigned char i_contrast_to_max) const
+        {
+        itkjs::ImageStack::ContrastFunction contrast_function;
+        contrast_function.from[0] = i_contrast_from_min;
+        contrast_function.from[1] = i_contrast_from_max;
+        contrast_function.to[0] = i_contrast_to_min;
+        contrast_function.to[1] = i_contrast_to_max;
+        return _ImageView(_GetImage().CalculateView(contrast_function));
+        }
+    };
+    
+  class _ImageStack : public _Image<itkjs::ImageStack::ImageStack>
+    {
+    public:
+      explicit _ImageStack(TImagePtr&& ip_image)
+        : _Image(std::move(ip_image))
+        {
+        }
+      void Dispose()
+        {
+        _AccessImagePtr().reset();
+        }
+      unsigned GetDimensions(unsigned i_index) const
+        {
+        return _GetImage().GetDimensions(i_index);
+        }      
+      unsigned GetComponentSize() const
+        {
+        return _GetImage().GetComponentSize();
+        } 
+      _ImageSlice GetSlice(unsigned i_index) const
+        {
+        return _ImageSlice(_GetImage().GetSlice(i_index));
+        }
     };
     
   class _ImageStackBuilder
@@ -46,6 +138,11 @@ namespace
       _ImageStackBuilder()
         : mp_impl(new itkjs::ImageStack::ImageStackBuilder())
         {
+        }
+        
+      void Dispose()
+        {
+        mp_impl.reset();
         }
         
       void OnLoadingProgress(emscripten::val i_callback)
@@ -88,13 +185,6 @@ namespace
     private:
       std::unique_ptr<itkjs::ImageStack::ImageStackBuilder> mp_impl;
     };
-          
-  void _Info()
-    {
-    std::cout << "ImageStack Module: " << std::endl;
-    std::cout << "  ITK Version - " << itk::Version::GetITKVersion() << std::endl;
-    std::cout << "  libde265 Version - " << de265_get_version() << std::endl;
-    }
   }
 
 using namespace emscripten;
@@ -102,12 +192,27 @@ EMSCRIPTEN_BINDINGS(Test)
   {
   function("Info", &_Info);
 
+  class_<_ImageView>("ImageView")
+    .function("dispose", &_ImageView::Dispose)
+    .function("getDimensions", &_ImageView::GetDimensions)
+    .function("getComponentSize", &_ImageView::GetComponentSize)
+    .function("fillRGBAPixelBuffer", &_ImageView::FillRGBAPixelBuffer);
+
+  class_<_ImageSlice>("ImageSlice")
+    .function("dispose", &_ImageSlice::Dispose)
+    .function("getDimensions", &_ImageSlice::GetDimensions)
+    .function("getComponentSize", &_ImageSlice::GetComponentSize)
+    .function("calculateView", &_ImageSlice::CalculateView);
+
   class_<_ImageStack>("ImageStack")
+    .function("dispose", &_ImageStack::Dispose)
     .function("getDimensions", &_ImageStack::GetDimensions)
-    .function("getComponentSize", &_ImageStack::GetComponentSize);
+    .function("getComponentSize", &_ImageStack::GetComponentSize)
+    .function("getSlice", &_ImageStack::GetSlice);
 
   class_<_ImageStackBuilder>("ImageStackBuilder")
     .constructor<>()
+    .function("dispose", &_ImageStackBuilder::Dispose)
     .function("onLoadingProgress", &_ImageStackBuilder::OnLoadingProgress)
     .function("onDecodingProgress", &_ImageStackBuilder::OnDecodingProgress)
     .function("loadDataAsync", &_ImageStackBuilder::LoadDataAsync);
