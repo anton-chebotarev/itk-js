@@ -10,6 +10,10 @@ def send_ihdr():
 @app.route('/12bit_images.hevc')
 def send_hevc():
     return app.send_static_file('12bit_images.hevc')
+    
+@app.route('/12bit_images_lossless.hevc')
+def send_hevc_lossless():
+    return app.send_static_file('12bit_images_lossless.hevc')
 
 @app.route('/ImageStack.js')
 def send_js():
