@@ -221,6 +221,14 @@
                 var gvminto = 0;
                 var gvmaxto = 255;
                 
+                var drawStatus = function(statusText) {
+                  imageContext.fillStyle = "#000000";
+                  imageContext.fillRect(0, 0, self.imageContext.canvas.width, self.imageContext.canvas.height);
+                  imageContext.fillStyle = "#ffffff";
+                  imageContext.font = "30px Arial";
+                  imageContext.fillText(statusText, 10, 50);
+                };
+                
                 var onImageStackReady = function() {
                   if (!imageStack) {
                     console.log("Image stack is not initialized");
@@ -234,7 +242,7 @@
                   imageContext.canvas.height = imageStack.getDimensions(1);
                   imageData = imageContext.getImageData(0, 0, imageContext.canvas.width, imageContext.canvas.height);
                   window.requestAnimationFrame(getSlice);
-                }
+                };
                 
                 var getSlice = function () {
                   if (!imageStack) {
@@ -248,7 +256,7 @@
                   imageSlice = imageStack.getSlice(sliceIndex);
                   
                   applyContrast();
-                }
+                };
                 
                 var applyContrast = function () {
                   if (!imageSlice) {
@@ -262,15 +270,11 @@
                                   
                   imageData.data.set(new Uint8Array(Module.HEAPU8.buffer, pixelBufferPtr, pixelBufferSz));
                   imageContext.putImageData(imageData, 0, 0);
-                }
+                };
                 
                 var loadData = function() {
                     self.controlsBlock.hidden = true;
-                    self.imageContext.fillStyle = "#000000";
-                    self.imageContext.fillRect(0, 0, self.imageContext.canvas.width, self.imageContext.canvas.height);
-                    self.imageContext.fillStyle = "#ffffff";
-                    self.imageContext.font = "30px Arial";
-                    self.imageContext.fillText("Loading...", 10, 50);
+                    
                     if (imageStack)
                       imageStack.dispose();
                     if (imageSlice)
@@ -280,41 +284,41 @@
                     var builder = new Module.ImageStackBuilder();
                     builder.onHeaderLoadingProgress(function(bytes_loaded, bytes_total) {
                       console.log("  [ihdr]: " + bytes_loaded + " of " + bytes_total + " bytes loaded");
+                      self.drawStatus("Loading header ... " + Math.round(bytes_loaded / bytes_total * 100) + "%");
                       });
                     builder.onDataLoadingProgress(function(bytes_loaded, bytes_total) {
                       console.log("  [hevc]: " + bytes_loaded + " of " + bytes_total + " bytes loaded");
+                      self.drawStatus("Loading data ... " + Math.round(bytes_loaded / bytes_total * 100) + "%");
                       });
                     builder.onDataDecodingProgress(function(frames_loaded, frames_total) {
                       console.log("  frames decoded (" + frames_total + " total)");
+                      self.drawStatus("Decoding data ... " + Math.round(frames_loaded / frames_total * 100) + "%");
                       });
                     builder.loadDataAsync(
                       "12bit_images.ihdr",
                       self.isLossyImageSource ? "12bit_images.hevc" : "12bit_images_lossless.hevc",
                       function(imageStack) {
                         builder.dispose();
+                        self.drawStatus("READY");
                         self.imageStack = imageStack;
                         self.onImageStackReady();
                       },
                       function(description) {
                         console.log("FAILED: " + description);
-                        self.imageContext.fillStyle = "#000000";
-                        self.imageContext.fillRect(0, 0, self.imageContext.canvas.width, self.imageContext.canvas.height);
-                        self.imageContext.fillStyle = "#ffffff";
-                        self.imageContext.font = "30px Arial";
-                        self.imageContext.fillText("FAILED", 10, 50);
+                        self.drawStatus("FAILED");
                         builder.dispose();
                       },
                       function(description) {
                         console.log("Status: " + description);
                       });
-                }
+                };
                 
                 var invalidateReload = function() {
                     if (self.isLossyImageSource == sourceIndex.checked)
                       return;
                     self.isLossyImageSource = sourceIndex.checked;
                     loadData();
-                }
+                };
             
                 document.addEventListener('DOMContentLoaded', function () {
                     self.controlsBlock = document.getElementById("controlsBlock");

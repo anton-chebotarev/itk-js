@@ -150,7 +150,7 @@ namespace itkjs
         if (mp_header.get() == nullptr)
           throw std::logic_error("Header expected to be parsed before data decoding");
 
-        mp_data_decoder->DecodeData(*mp_header, ip_buffer.get(), i_size_in_bytes);
+        mp_data_decoder->DecodeData(*mp_header, std::move(ip_buffer), i_size_in_bytes);
         }
       catch (const std::exception& i_e)
         {
