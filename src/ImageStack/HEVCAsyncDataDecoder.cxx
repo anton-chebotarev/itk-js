@@ -61,7 +61,7 @@ namespace itkjs
             , image_buffer_size(i_header.dimensions[0] * i_header.dimensions[1] * i_header.dimensions[2] * i_header.component_size)
             , p_ctx(de265_new_decoder(), de265_free_decoder)
             , remaining(i_data_buffer_size)
-            , count(4096)
+            , count(1024*16) // 16Kb chunks
             , num_frames(0)
             , stop(0)
             {
