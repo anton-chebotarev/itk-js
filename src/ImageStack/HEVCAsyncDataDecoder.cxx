@@ -9,6 +9,8 @@
 
 #include <emscripten/html5.h>
 
+#include <math.h>
+
 namespace
   {
   void _Checked(de265_error i_err)
@@ -61,7 +63,7 @@ namespace itkjs
             , image_buffer_size(i_header.dimensions[0] * i_header.dimensions[1] * i_header.dimensions[2] * i_header.component_size)
             , p_ctx(de265_new_decoder(), de265_free_decoder)
             , remaining(i_data_buffer_size)
-            , count(1024*16) // 16Kb chunks
+            , count(round(i_data_buffer_size * 0.01)) // chunks are 1% of total encoded data size
             , num_frames(0)
             , stop(0)
             {
@@ -69,6 +71,13 @@ namespace itkjs
             p_image_buffer.reset(new uint8_t[image_buffer_size]);
             p_buffer = reinterpret_cast<uint8_t*>(p_image_buffer.get());
             p_buffer16 = reinterpret_cast<uint16_t*>(p_image_buffer.get());
+            }
+            
+          TUniqueBufferPtr Reset()
+            {
+            p_ctx.reset();
+            p_data_buffer.reset();
+            return std::move(p_image_buffer);
             }
           };
           
@@ -157,10 +166,7 @@ namespace itkjs
               {
               if (data.num_frames != data.header.dimensions[2])
                 throw std::runtime_error("Invalid input data");
-              data.p_data_buffer.reset();
-              data.p_ctx.reset();
-              data.parent.mr_data_destination.OnSuccess(std::move(data.p_image_buffer), data.image_buffer_size);
-              data.parent.mp_context.reset();
+              data.parent.mr_data_destination.OnSuccess(data.Reset(), data.image_buffer_size);
               return false; // break [emscripten_request_animation_frame_loop]
               }
               
@@ -168,13 +174,13 @@ namespace itkjs
             }
           catch (const std::exception& i_e)
             {
-            data.parent.mp_context.reset();
+            data.Reset();
             data.parent.mr_data_destination.OnFailure(i_e.what());
             return false; // break [emscripten_request_animation_frame_loop]
             }
           catch (...)
             {
-            data.parent.mp_context.reset();
+            data.Reset();
             data.parent.mr_data_destination.OnFailure("Exception during HEVC decoding");
             return false; // break [emscripten_request_animation_frame_loop]
             }
