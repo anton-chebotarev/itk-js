@@ -1,7 +1,7 @@
-#ifndef HeaderParser_H
-#define HeaderParser_H
+#ifndef NullProgressReporter_H
+#define NullProgressReporter_H
 
-#include "IHeaderParser.h"
+#include "IProgressReporter.h"
 
 namespace itkjs
   {
@@ -9,13 +9,10 @@ namespace itkjs
     {
       
     ////////////////////////////////////////////////////////////////////////
-          
-    class HeaderParser : public IHeaderParser
+    class NullProgressReporter : public IProgressReporter
       {
       public:        
-        virtual std::unique_ptr<Header> ParseHeader(
-          void* ip_data_buffer,
-          unsigned i_size_in_bytes) const override;
+        virtual void OnProgress(unsigned /*i_processed_cnt*/, unsigned /*i_total_cnt*/) const;
       };
       
     ////////////////////////////////////////////////////////////////////////

@@ -278,11 +278,14 @@
                     if (pixelBufferPtr)
                       Module._free(pixelBufferPtr);
                     var builder = new Module.ImageStackBuilder();
-                    builder.onLoadingProgress(function(id, bytes_loaded, bytes_total) {
-                      console.log("  [" + id + "]: " + bytes_loaded + " of " + bytes_total + " bytes loaded");
+                    builder.onHeaderLoadingProgress(function(bytes_loaded, bytes_total) {
+                      console.log("  [ihdr]: " + bytes_loaded + " of " + bytes_total + " bytes loaded");
                       });
-                    builder.onDecodingProgress(function(frames_loaded, frames_total) {
-                      console.log("  frame decoded (" + frames_total + " total)");
+                    builder.onDataLoadingProgress(function(bytes_loaded, bytes_total) {
+                      console.log("  [hevc]: " + bytes_loaded + " of " + bytes_total + " bytes loaded");
+                      });
+                    builder.onDataDecodingProgress(function(frames_loaded, frames_total) {
+                      console.log("  frames decoded (" + frames_total + " total)");
                       });
                     builder.loadDataAsync(
                       "12bit_images.ihdr",

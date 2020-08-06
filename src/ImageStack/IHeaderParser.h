@@ -22,8 +22,8 @@ namespace itkjs
         virtual ~IHeaderParser() = default;
         
         virtual std::unique_ptr<Header> ParseHeader(
-          void* ip_data_buffer,
-          unsigned i_data_buffer_size) const = 0; 
+          void* /*ip_data_buffer*/,
+          unsigned /*i_size_in_bytes*/) const = 0; 
       };
       
     ////////////////////////////////////////////////////////////////////////

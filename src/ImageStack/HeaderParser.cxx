@@ -31,11 +31,11 @@ namespace itkjs
           
     std::unique_ptr<Header> HeaderParser::ParseHeader(
       void* ip_data_buffer,
-      unsigned i_data_buffer_size) const
+      unsigned i_size_in_bytes) const
       {
       std::unique_ptr<Header> p_header(new Header());
       
-      std::string header_str(reinterpret_cast<char*>(ip_data_buffer), i_data_buffer_size);        
+      std::string header_str(reinterpret_cast<char*>(ip_data_buffer), i_size_in_bytes);        
       std::istringstream ss(header_str);
 
       std::string line;

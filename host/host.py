@@ -18,7 +18,11 @@ def send_hevc_lossless():
 @app.route('/ImageStack.js')
 def send_js():
     return app.send_static_file('ImageStack.js')
-    
+
+@app.route('/ImageStack.worker.js')
+def send_worker_js():
+    return app.send_static_file('ImageStack.worker.js')
+ 
 @app.route('/')
 def root():
     return app.send_static_file('ImageStack.html')

@@ -145,21 +145,31 @@ namespace
         mp_impl.reset();
         }
         
-      void OnLoadingProgress(emscripten::val i_callback)
+        
+      void OnHeaderLoadingProgress(emscripten::val i_callback)
         {
-        mp_impl->OnLoadingProgress(
-          [i_callback](int i_id, unsigned i_bytes_loaded, unsigned i_bytes_total) -> void
+        mp_impl->OnHeaderLoadingProgress(
+          [i_callback](unsigned i_processed_cnt, unsigned i_total_cnt) -> void
             {
-            i_callback(i_id, i_bytes_loaded, i_bytes_total);
+            i_callback(i_processed_cnt, i_total_cnt);
             } );
         }
-      
-      void OnDecodingProgress(emscripten::val i_callback)
+        
+      void OnDataLoadingProgress(emscripten::val i_callback)
         {
-        mp_impl->OnDecodingProgress(
-          [i_callback](unsigned i_frame_number, unsigned i_frames_total) -> void
+        mp_impl->OnDataLoadingProgress(
+          [i_callback](unsigned i_processed_cnt, unsigned i_total_cnt) -> void
             {
-            i_callback(i_frame_number, i_frames_total);
+            i_callback(i_processed_cnt, i_total_cnt);
+            } );
+        }
+        
+      void OnDataDecodingProgress(emscripten::val i_callback)
+        {
+        mp_impl->OnDataDecodingProgress(
+          [i_callback](unsigned i_processed_cnt, unsigned i_total_cnt) -> void
+            {
+            i_callback(i_processed_cnt, i_total_cnt);
             } );
         }
         
@@ -172,13 +182,13 @@ namespace
             {
             i_on_ready_callback(_ImageStack(std::move(ip_image_stack)));
             },
-          [i_on_failed_callback](const char* ip_description) -> void
+          [i_on_failed_callback](const std::string& i_description) -> void
             {
-            i_on_failed_callback(std::string(ip_description));
+            i_on_failed_callback(i_description);
             },
-          [i_status_callback](const char* ip_description) -> void
+          [i_status_callback](const std::string& i_description) -> void
             {
-            i_status_callback(std::string(ip_description));
+            i_status_callback(i_description);
             } );
         }
         
@@ -213,7 +223,8 @@ EMSCRIPTEN_BINDINGS(Test)
   class_<_ImageStackBuilder>("ImageStackBuilder")
     .constructor<>()
     .function("dispose", &_ImageStackBuilder::Dispose)
-    .function("onLoadingProgress", &_ImageStackBuilder::OnLoadingProgress)
-    .function("onDecodingProgress", &_ImageStackBuilder::OnDecodingProgress)
+    .function("onHeaderLoadingProgress", &_ImageStackBuilder::OnHeaderLoadingProgress)
+    .function("onDataLoadingProgress", &_ImageStackBuilder::OnDataLoadingProgress)
+    .function("onDataDecodingProgress", &_ImageStackBuilder::OnDataDecodingProgress)
     .function("loadDataAsync", &_ImageStackBuilder::LoadDataAsync);
   }

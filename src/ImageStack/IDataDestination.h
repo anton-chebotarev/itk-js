@@ -1,6 +1,10 @@
 #ifndef IDataDestination_H
 #define IDataDestination_H
 
+#include "MemoryManagement.h"
+
+#include <string>
+
 namespace itkjs
   {
   namespace ImageStack
@@ -12,8 +16,9 @@ namespace itkjs
       public:
         virtual ~IDataDestination() = default;
         
-        virtual void ProcessLoadedData(void* /*ip_buffer*/, unsigned /*i_buffer_size*/) = 0;
-        virtual void OnDataLoadingFailed(const char* /*ip_description*/) = 0;
+        virtual void OnSuccess(TUniqueMallocPtr&& /*ip_buffer*/, unsigned /*i_size_in_bytes*/) = 0;
+        virtual void OnSuccess(TUniqueBufferPtr&& /*ip_buffer*/, unsigned /*i_size_in_bytes*/) = 0;
+        virtual void OnFailure(const std::string& /*i_description*/) = 0;
       };
       
     ////////////////////////////////////////////////////////////////////////
