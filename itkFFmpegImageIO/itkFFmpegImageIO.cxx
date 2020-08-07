@@ -212,7 +212,10 @@ namespace itk
           throw std::runtime_error("Unsupported Pixel Size"); //ss << " -pix_fmt gray10le";
         return ss.str();
       case Encoding::h265:
-        ss << "-c:v libx265 -x265-params lossless=1";
+        if (this->GetUseCompression())
+          ss << "-c:v libx265 -preset slow -x265-params \"qp=0:qpstep=1:cu-lossless=1:psy-rd=5.0:psy-rdoq=10.0:rc-grain=1:aq-mode=0:cutree=0:ipratio=1.0:pbratio=1.0:sao=0:rskip=0:no-deblock=1:no-sao=1:no-weightp=1:no-weightb=1:no-b-intra=1:bframes=0:keyint=1:scenecut=0\"";
+        else
+          ss << "-c:v libx265 -x265-params lossless=1";
         if (this->GetPixelSize() == 2)
           ss << " -pix_fmt gray12le";
         return ss.str();
