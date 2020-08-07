@@ -34,7 +34,7 @@ namespace itkjs
       mp_progress_reporter = std::move(ip_reporter);
       }
       
-    void HEVCDataDecoder::DecodeData(const Header& i_header, void* ip_data_buffer, unsigned i_data_buffer_size) const
+    void HEVCDataDecoder::DecodeData(const Header& i_header, TUniqueMallocPtr&& ip_data_buffer, unsigned i_data_buffer_size) const
       {
       try
         {
@@ -46,7 +46,7 @@ namespace itkjs
 
         std::unique_ptr<de265_decoder_context, decltype(&de265_free_decoder)> p_ctx(de265_new_decoder(), de265_free_decoder);
       
-        uint8_t* p_input_buffer = reinterpret_cast<uint8_t*>(ip_data_buffer);
+        uint8_t* p_input_buffer = reinterpret_cast<uint8_t*>(ip_data_buffer.get());
         unsigned remaining = i_data_buffer_size;
         unsigned count = 4096;
 

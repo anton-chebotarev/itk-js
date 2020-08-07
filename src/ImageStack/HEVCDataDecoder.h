@@ -24,7 +24,7 @@ namespace itkjs
         
         // IDataDecoder
         virtual void SetProgressReporter(std::unique_ptr<IProgressReporter>&& ip_reporter) override;
-        virtual void DecodeData(const Header& i_header, void* ip_data_buffer, unsigned i_data_buffer_size) const override;
+        virtual void DecodeData(const Header& i_header, TUniqueMallocPtr&& ip_data_buffer, unsigned i_data_buffer_size) const override;
       
       private:
         IDataDestination& mr_data_destination;
