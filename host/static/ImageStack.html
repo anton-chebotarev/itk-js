@@ -200,9 +200,12 @@
             </style>
             <script src="ImageStack.js"></script>
             <script>                
+                var headerUrl = "12bit_images.ihdr";
+                var dataUrls = ["12bit_images.hevc", "12bit_images_7.hevc", "12bit_images_lossless.hevc"];
+                
                 var self = this;
 
-                var isLossyImageSource = true;
+                var dataUrlIdx = 0;
                 
                 var controlsBlock = null;
                 var sourceIndex = null;
@@ -295,8 +298,8 @@
                       self.drawStatus("Decoding data ... " + Math.round(frames_loaded / frames_total * 100) + "%");
                       });
                     builder.loadDataAsync(
-                      "12bit_images.ihdr",
-                      self.isLossyImageSource ? "12bit_images.hevc" : "12bit_images_lossless.hevc",
+                      headerUrl,
+                      dataUrls[dataUrlIdx],
                       function(imageStack) {
                         builder.dispose();
                         self.drawStatus("READY");
@@ -313,10 +316,8 @@
                       });
                 };
                 
-                var invalidateReload = function() {
-                    if (self.isLossyImageSource == sourceIndex.checked)
-                      return;
-                    self.isLossyImageSource = sourceIndex.checked;
+                var invalidateReload = function(idx) {
+                    dataUrlIdx = idx;
                     loadData();
                 };
             
@@ -434,8 +435,9 @@
             <br/>
             <br/>
             <p><b>Images source:</b></p>
-            <p><input id="source0" name="source" type="radio" value=0 checked onclick="invalidateReload()"> Lossy - 2.4Mb</p>
-            <p><input id="source1" name="source" type="radio" value=1 onclick="invalidateReload()"> Lossless - 61Mb</p>
+            <p><input id="source0" name="source" type="radio" value=0 checked onchange="invalidateReload(parseInt(this.value, 10))"> Lossy - 2.4Mb</p>
+            <p><input id="source1" name="source" type="radio" value=1 onchange="invalidateReload(parseInt(this.value, 10))"> Lossy - 7.4Mb</p>
+            <p><input id="source2" name="source" type="radio" value=2 onchange="invalidateReload(parseInt(this.value, 10))"> Lossless - 61Mb</p>
             
           </div>
         </body>
