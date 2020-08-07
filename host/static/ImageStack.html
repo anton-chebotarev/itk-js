@@ -335,23 +335,17 @@
         </head>
 
         <body>
-            <canvas id="imageCanvas" width="512" height="512"></canvas>
+            <canvas id="imageCanvas" width="512" height="512" style="width:min(768px,94vw);height:min(768px,94vw)"></canvas>
     
           <div id="controlsBlock" hidden="true">
-          
-            <br/>
-            <br/>
-            <div style="width:512px;">
-              <input type="range" id="indexRange" name="indexRange" tabindex="0" value="0" max="100" min="0" step="1" style="width:100%;" oninput="
+            <div style="width:min(768px,94vw);">
+              <input type="range" id="indexRange" name="indexRange" tabindex="0" value="0" max="100" min="0" step="1" style="width:100%;height:50px" oninput="
                   sliceIndex = parseInt(this.value,10);
                   window.requestAnimationFrame(getSlice);
                   " />
             </div>
-    
-            <br/>
-            <br/>
-            <p><b>Input contrast range:</b></p>
-            <div slider id="slider-distance" style="width:512px;">
+            
+            <div slider id="slider-distance" style="width:min(768px,94vw);">
               <div>
                 <div inverse-left style="width:5%;"></div>
                 <div inverse-right style="width:35%;"></div>
@@ -389,11 +383,8 @@
                   window.requestAnimationFrame(applyContrast);
                   " />
             </div>
-            
-            <br/>
-            <br/>
-            <p><b>Output contrast range:</b></p>
-            <div slider id="slider-distance" style="width:512px;">
+
+            <div slider id="slider-distance" style="width:min(768px,94vw);">
               <div>
                 <div inverse-left style="width:0%;"></div>
                 <div inverse-right style="width:0%;"></div>
@@ -431,10 +422,11 @@
                   window.requestAnimationFrame(applyContrast);
                   " />
             </div>
-            <br/>
-            <br/>
-            <br/>
-            <p><b>Images source:</b></p>
+
+            </br>
+            </br>
+            </br>
+            <b>Images source:</b>
             <p><input id="source0" name="source" type="radio" value=0 checked onchange="invalidateReload(parseInt(this.value, 10))"> Lossy - 2.4Mb</p>
             <p><input id="source1" name="source" type="radio" value=1 onchange="invalidateReload(parseInt(this.value, 10))"> Lossy - 7.4Mb</p>
             <p><input id="source2" name="source" type="radio" value=2 onchange="invalidateReload(parseInt(this.value, 10))"> Lossless - 61Mb</p>
