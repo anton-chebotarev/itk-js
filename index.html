@@ -198,14 +198,17 @@
                   opacity: 1;
                 }
             </style>
-            <script src="host/static/ImageStack.js"></script>
+            <script src="host\static\Vector.js"></script>
+            <script src="host\static\ImageStack.js"></script>
             <script>                
-                var headerUrl = "host/static/12bit_images.ihdr";
-                var dataUrls = ["host/static/12bit_images.hevc", "host/static/12bit_images_7.hevc", "host/static/12bit_images_lossless.hevc"];
+                var headerUrl = "host\static\12bit_images.ihdr";
+                var dataUrls = ["host\static\12bit_images.hevc", "host\static\12bit_images_7.hevc", "host\static\12bit_images_lossless.hevc"];
                 
                 var self = this;
 
                 var dataUrlIdx = 0;
+                
+                var sliderRotates = false;
                 
                 var controlsBlock = null;
                 var sourceIndex = null;
@@ -217,12 +220,22 @@
                 var pixelBufferSz = null;
                 var pixelBufferPtr = null;
                 
+                var dimensions = null;
+                var spacings = null;
+                var vecX = null;
+                var vecY = null;
+                var vecZ = null;
+                var origin = null;
+                var center = null;
+                
                 var sliceIndex = 0;
                 
                 var gvminfrom = 224;
                 var gvmaxfrom = 2674;
                 var gvminto = 0;
                 var gvmaxto = 255;
+                
+                var lastLoop = new Date();
                 
                 var drawStatus = function(statusText) {
                   imageContext.fillStyle = "#000000";
@@ -237,8 +250,17 @@
                     console.log("Image stack is not initialized");
                     return;
                   }
+
+                  dimensions = new Vector(imageStack.getDimensions(0), imageStack.getDimensions(1), imageStack.getDimensions(2));
+                  spacings = new Vector(imageStack.getSpacings(0), imageStack.getSpacings(1), imageStack.getSpacings(2));
+                  vecX = new Vector(imageStack.getVecX(0), imageStack.getVecX(1), imageStack.getVecX(2));
+                  vecY = new Vector(imageStack.getVecY(0), imageStack.getVecY(1), imageStack.getVecY(2));
+                  vecZ = new Vector(imageStack.getVecZ(0), imageStack.getVecZ(1), imageStack.getVecZ(2));
+                  origin = new Vector(imageStack.getOrigin(0), imageStack.getOrigin(1), imageStack.getOrigin(2));
+                  //center = origin.clone().add(vecX.clone().mul(spacings.x * dimensions.x / 2)).add(vecY.clone().mul(spacings.y * dimensions.y / 2)).add(vecZ.clone().mul(spacings.z * dimensions.z / 2));
+
                   self.controlsBlock.hidden = false;
-                  indexRange.max = imageStack.getDimensions(2);
+                  indexRange.max = imageStack.getDimensions(2)-1;
                   pixelBufferSz = imageStack.getDimensions(0) * imageStack.getDimensions(1) * 4;
                   pixelBufferPtr = Module._malloc(pixelBufferSz);
                   imageContext.canvas.width = imageStack.getDimensions(0);
@@ -256,7 +278,16 @@
                   if (imageSlice)
                     imageSlice.dispose();
                   
-                  imageSlice = imageStack.getSlice(sliceIndex);
+                  if (sliderRotates) {
+                    var m = new Matrix().rotate(90 * sliceIndex / indexRange.max, vecY);
+                    var y = vecY;
+                    var x = m.transform(vecX);                  
+                    var o = origin;
+                    imageSlice = imageStack.getArbitrarySlice(o.x, o.y, o.z, x.x, x.y, x.z, y.x, y.y, y.z);
+                  }
+                  else {
+                    imageSlice = imageStack.getSlice(sliceIndex);
+                  }
                   
                   applyContrast();
                 };
@@ -273,6 +304,18 @@
                                   
                   imageData.data.set(new Uint8Array(Module.HEAPU8.buffer, pixelBufferPtr, pixelBufferSz));
                   imageContext.putImageData(imageData, 0, 0);
+                  
+                  var thisLoop = new Date();
+                  var diff = thisLoop - lastLoop;
+                  var fps = "- fps";
+                  if (diff < 3000) {
+                    fps = Math.round(1000 / (thisLoop - lastLoop)) + " fps";
+                  }
+                  lastLoop = thisLoop;
+                  
+                  imageContext.fillStyle = "#ffffff";
+                  imageContext.font = "10px Arial";
+                  imageContext.fillText(fps, 1, 10);
                 };
                 
                 var loadData = function() {
@@ -320,6 +363,11 @@
                     dataUrlIdx = idx;
                     loadData();
                 };
+                
+                var invalidateSlider = function(idx) {
+                    sliderRotates = !!idx;
+                    getSlice();
+                };
             
                 document.addEventListener('DOMContentLoaded', function () {
                     self.controlsBlock = document.getElementById("controlsBlock");
@@ -335,17 +383,26 @@
         </head>
 
         <body>
-            <canvas id="imageCanvas" width="512" height="512" style="width:min(768px,94vw);height:min(768px,94vw)"></canvas>
+          <canvas id="imageCanvas" width="512" height="512" style="width:min(768px,94vw);height:min(768px,94vw)"></canvas>
     
-          <div id="controlsBlock" hidden="true">
-            <div style="width:min(768px,94vw);">
+          <div id="controlsBlock" hidden="true" style="width:min(768px,94vw);">            
+            <div>
               <input type="range" id="indexRange" name="indexRange" tabindex="0" value="0" max="100" min="0" step="1" style="width:100%;height:50px" oninput="
                   sliceIndex = parseInt(this.value,10);
                   window.requestAnimationFrame(getSlice);
                   " />
             </div>
             
-            <div slider id="slider-distance" style="width:min(768px,94vw);">
+            <table style="width:100%">
+              <tr>
+                <td><b>Slider behaviour:</b></td>
+                <td><input id="slider0" name="slider" type="radio" value=0 checked onchange="invalidateSlider(parseInt(this.value, 10))">Scroll (slice extraction)</td>
+                <td><input id="slider1" name="slider" type="radio" value=1 onchange="invalidateSlider(parseInt(this.value, 10))">Rotate (arbitrary plane re-slice)</td>
+                </td>
+              </tr>
+            </table>
+            
+            <div slider id="slider-distance">
               <div>
                 <div inverse-left style="width:5%;"></div>
                 <div inverse-right style="width:35%;"></div>
@@ -384,7 +441,7 @@
                   " />
             </div>
 
-            <div slider id="slider-distance" style="width:min(768px,94vw);">
+            <div slider id="slider-distance">
               <div>
                 <div inverse-left style="width:0%;"></div>
                 <div inverse-right style="width:0%;"></div>
@@ -421,16 +478,18 @@
                   gvmaxto = parseInt(this.value,10);
                   window.requestAnimationFrame(applyContrast);
                   " />
-            </div>
-
-            </br>
-            </br>
-            </br>
-            <b>Images source:</b>
-            <p><input id="source0" name="source" type="radio" value=0 checked onchange="invalidateReload(parseInt(this.value, 10))"> Lossy - 2.4Mb</p>
-            <p><input id="source1" name="source" type="radio" value=1 onchange="invalidateReload(parseInt(this.value, 10))"> Lossy - 7.4Mb</p>
-            <p><input id="source2" name="source" type="radio" value=2 onchange="invalidateReload(parseInt(this.value, 10))"> Lossless - 61Mb</p>
+            </div>   
             
+            <br>
+            <br>
+            <table style="width:100%">
+              <tr>
+                <td><b>Images source:</b></td>
+                <td><input id="source0" name="source" type="radio" value=0 checked onchange="invalidateReload(parseInt(this.value, 10))">Lossy - 2.4Mb</td>
+                <td><input id="source1" name="source" type="radio" value=1 onchange="invalidateReload(parseInt(this.value, 10))">Lossy - 7.4Mb</td>
+                <td><input id="source2" name="source" type="radio" value=2 onchange="invalidateReload(parseInt(this.value, 10))">Lossless - 61Mb</td>
+              </tr>
+            </table>
           </div>
         </body>
 
