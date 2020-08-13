@@ -13,6 +13,8 @@ namespace itkjs
     ////////////////////////////////////////////////////////////////////////
     
     class ImageSlice;
+    
+    struct Vector;
       
     ////////////////////////////////////////////////////////////////////////
           
@@ -20,6 +22,7 @@ namespace itkjs
       {        
       private:
         typedef itk::Image<unsigned short, 3> _TImageStack;
+        typedef itk::Image<unsigned short, 2> _TImageSlice;
         
       private:
         friend class ImageStackBuilder;
@@ -32,7 +35,14 @@ namespace itkjs
         virtual unsigned GetDimensions(unsigned i_index) const override;
         virtual unsigned GetComponentSize() const override;
         
+        Vector GetSpacings() const;
+        Vector GetOrigin() const;
+        Vector GetVecX() const;
+        Vector GetVecY() const;
+        Vector GetVecZ() const;
+        
         std::unique_ptr<ImageSlice> GetSlice(unsigned i_index) const;
+        std::unique_ptr<ImageSlice> GetArbitrarySlice(Vector i_pt_corner, Vector i_vec_x, Vector i_vec_y) const;
         
       private:
         _TImageStack::Pointer mp_image_stack;

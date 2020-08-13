@@ -12,14 +12,12 @@ namespace itkjs
     ImageView::ImageView(_TImageView::Pointer ip_image_view)
       : mp_image_view(ip_image_view)
       {
-      if (mp_image_view->GetBufferedRegion().GetSize()[2] != 1)
-        throw std::logic_error("2D image is expected");
       mp_image_view->DisconnectPipeline();
       }
       
     unsigned ImageView::GetDimensions(unsigned i_index) const
       {
-      if (i_index >= 2)
+      if (i_index >= 1)
         return 0;
       return mp_image_view->GetBufferedRegion().GetSize()[i_index];
       }

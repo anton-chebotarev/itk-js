@@ -16,14 +16,12 @@ namespace itkjs
     ImageSlice::ImageSlice(_TImageSlice::Pointer ip_image_slice)
       : mp_image_slice(ip_image_slice)
       {
-      if (mp_image_slice->GetBufferedRegion().GetSize()[2] != 1)
-        throw std::logic_error("2D image is expected");
       mp_image_slice->DisconnectPipeline();
       }
       
     unsigned ImageSlice::GetDimensions(unsigned i_index) const
       {
-      if (i_index >= 2)
+      if (i_index >= 1)
         return 0;
       return mp_image_slice->GetBufferedRegion().GetSize()[i_index];
       }

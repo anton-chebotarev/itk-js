@@ -7,6 +7,7 @@
 #include "./ImageStack/ImageStack.h"
 #include "./ImageStack/ImageSlice.h"
 #include "./ImageStack/ImageView.h"
+#include "./ImageStack/Vector.h"
 
 #include <emscripten/bind.h>
 
@@ -121,14 +122,38 @@ namespace
       unsigned GetDimensions(unsigned i_index) const
         {
         return _GetImage().GetDimensions(i_index);
-        }      
+        }
       unsigned GetComponentSize() const
         {
         return _GetImage().GetComponentSize();
-        } 
+        }
+      double GetSpacings(unsigned i_index) const
+        {
+        return _GetImage().GetSpacings()[i_index];
+        }
+      double GetOrigin(unsigned i_index) const
+        {
+        return _GetImage().GetOrigin()[i_index];
+        }
+      double GetVecX(unsigned i_index) const
+        {
+        return _GetImage().GetVecX()[i_index];
+        }
+      double GetVecY(unsigned i_index) const
+        {
+        return _GetImage().GetVecY()[i_index];
+        }
+      double GetVecZ(unsigned i_index) const
+        {
+        return _GetImage().GetVecZ()[i_index];
+        }
       _ImageSlice GetSlice(unsigned i_index) const
         {
         return _ImageSlice(_GetImage().GetSlice(i_index));
+        }
+      _ImageSlice GetArbitrarySlice(double i_ox, double i_oy, double i_oz, double i_xx, double i_xy, double i_xz, double i_yx, double i_yy, double i_yz) const
+        {
+        return _ImageSlice(_GetImage().GetArbitrarySlice({i_ox, i_oy, i_oz}, {i_xx, i_xy, i_xz}, {i_yx, i_yy, i_yz}));
         }
     };
     
@@ -144,7 +169,6 @@ namespace
         {
         mp_impl.reset();
         }
-        
         
       void OnHeaderLoadingProgress(emscripten::val i_callback)
         {
@@ -218,7 +242,13 @@ EMSCRIPTEN_BINDINGS(Test)
     .function("dispose", &_ImageStack::Dispose)
     .function("getDimensions", &_ImageStack::GetDimensions)
     .function("getComponentSize", &_ImageStack::GetComponentSize)
-    .function("getSlice", &_ImageStack::GetSlice);
+    .function("getSpacings", &_ImageStack::GetSpacings)
+    .function("getOrigin", &_ImageStack::GetOrigin)
+    .function("getVecX", &_ImageStack::GetVecX)
+    .function("getVecY", &_ImageStack::GetVecY)
+    .function("getVecZ", &_ImageStack::GetVecZ)
+    .function("getSlice", &_ImageStack::GetSlice)
+    .function("getArbitrarySlice", &_ImageStack::GetArbitrarySlice);
 
   class_<_ImageStackBuilder>("ImageStackBuilder")
     .constructor<>()

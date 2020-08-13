@@ -15,7 +15,7 @@ namespace itkjs
     class ImageView : public IImage
       {        
       private:
-        typedef itk::Image<unsigned char, 3> _TImageView;
+        typedef itk::Image<unsigned char, 2> _TImageView;
         
       private:
         friend class ImageSlice;

@@ -21,7 +21,7 @@ namespace itkjs
     class ImageSlice : public IImage
       {        
       private:
-        typedef itk::Image<unsigned short, 3> _TImageSlice;
+        typedef itk::Image<unsigned short, 2> _TImageSlice;
         
       private:
         friend class ImageStack;
