@@ -198,13 +198,49 @@
                   opacity: 1;
                 }
             </style>
-            <script src="host/static/Vector.js"></script>
-            <script src="host/static/ImageStack.js"></script>
-            <script>                
+            <script src="Vector.js"></script>
+            <script>
                 var headerUrl = "host/static/12bit_images.ihdr";
                 var dataUrls = ["host/static/12bit_images.hevc", "host/static/12bit_images_7.hevc", "host/static/12bit_images_lossless.hevc"];
+                var jsUrl = "host/static/ImageStack.js"
+                var wasmUrl = "host/static/ImageStackWasm.wasm"
+                var wasmjsUrl = "host/static/ImageStackWasm.js"
+                
+                Math.fround = Math.fround || (function (array) {
+                  return function(x) {
+                    return array[0] = x, array[0];
+                  };
+                })(new Float32Array(1));
                 
                 var self = this;
+                
+                // Test for iOS Safari
+                function testSafariWebAssemblyBug() {
+                  var bin = new Uint8Array([0,97,115,109,1,0,0,0,1,6,1,96,1,127,1,127,3,2,1,0,5,3,1,0,1,7,8,1,4,116,101,115,116,0,0,10,16,1,14,0,32,0,65,1,54,2,0,32,0,40,2,0,11]);
+                  var mod = new WebAssembly.Module(bin);
+                  var inst = new WebAssembly.Instance(mod, {});
+                  // test storing to and loading from a non-zero location via a parameter.
+                  // Safari on iOS 11.2.5 returns 0 unexpectedly at non-zero locations
+                  return (inst.exports.test(4) !== 0);
+                }
+
+                // This function loads a JavaScript file and adds it to the page. "path"
+                // is the path to the JavaScript file. "onLoadFunc" is the function to be
+                // called when the JavaScript file has been loaded.
+                function loadJavaScriptFile(path, onLoadFunc) {
+                  var head = document.getElementsByTagName('head')[0];
+                  var element = document.createElement('script');
+                  element.type = 'text/javascript';
+                  element.src = path;
+                  if (onLoadFunc !== null)
+                    element.onload = onLoadFunc;
+                  head.appendChild(element);
+                }
+                
+                var onImageStackModuleReady = function() {
+                    ImageStackModule.Info();
+                    loadData();
+                };
 
                 var dataUrlIdx = 0;
                 
@@ -235,7 +271,10 @@
                 var gvminto = 0;
                 var gvmaxto = 255;
                 
+                var moduleType = "";
                 var lastLoop = new Date();
+                var loops = null;
+                var loopid = 0;
                 
                 var drawStatus = function(statusText) {
                   imageContext.fillStyle = "#000000";
@@ -262,7 +301,7 @@
                   self.controlsBlock.hidden = false;
                   indexRange.max = imageStack.getDimensions(2)-1;
                   pixelBufferSz = imageStack.getDimensions(0) * imageStack.getDimensions(1) * 4;
-                  pixelBufferPtr = Module._malloc(pixelBufferSz);
+                  pixelBufferPtr = ImageStackModule._malloc(pixelBufferSz);
                   imageContext.canvas.width = imageStack.getDimensions(0);
                   imageContext.canvas.height = imageStack.getDimensions(1);
                   imageData = imageContext.getImageData(0, 0, imageContext.canvas.width, imageContext.canvas.height);
@@ -302,82 +341,116 @@
                   imageView.fillRGBAPixelBuffer(pixelBufferPtr, pixelBufferSz);
                   imageView.dispose();
                                   
-                  imageData.data.set(new Uint8Array(Module.HEAPU8.buffer, pixelBufferPtr, pixelBufferSz));
+                  imageData.data.set(new Uint8Array(ImageStackModule.HEAPU8.buffer, pixelBufferPtr, pixelBufferSz));
                   imageContext.putImageData(imageData, 0, 0);
                   
+                  showFPS();
+                };
+                
+                var showFPS = function() {
                   var thisLoop = new Date();
                   var diff = thisLoop - lastLoop;
-                  var fps = "- fps";
+                  var fps = moduleType;
                   if (diff < 3000) {
-                    fps = Math.round(1000 / (thisLoop - lastLoop)) + " fps";
+                    fps = Math.round(1000 / (thisLoop - lastLoop));
+                    if (!loops)
+                      loops = new Array(10).fill(fps);
+                    else
+                      loops[loopid % 10] = fps;
+                    fps = Math.round((loops[0] + loops[1] + loops[2] + loops[3] + loops[4] + loops[5] + loops[6] + loops[7] + loops[8] + loops[9]) / 10)  + " fps";
                   }
-                  lastLoop = thisLoop;
+                  else{
+                    loops = null;
+                  }
                   
+                  loopid = loopid + 1;
+                  if (loopid == 1000)
+                    loopid = 0;
+                  lastLoop = thisLoop;
+
                   imageContext.fillStyle = "#ffffff";
                   imageContext.font = "10px Arial";
                   imageContext.fillText(fps, 1, 10);
                 };
                 
                 var loadData = function() {
-                    self.controlsBlock.hidden = true;
-                    
-                    if (imageStack)
-                      imageStack.dispose();
-                    if (imageSlice)
-                      imageSlice.dispose();
-                    if (pixelBufferPtr)
-                      Module._free(pixelBufferPtr);
-                    var builder = new Module.ImageStackBuilder();
-                    builder.onHeaderLoadingProgress(function(bytes_loaded, bytes_total) {
-                      console.log("  [ihdr]: " + bytes_loaded + " of " + bytes_total + " bytes loaded");
-                      self.drawStatus("Loading header ... " + Math.round(bytes_loaded / bytes_total * 100) + "%");
-                      });
-                    builder.onDataLoadingProgress(function(bytes_loaded, bytes_total) {
-                      console.log("  [hevc]: " + bytes_loaded + " of " + bytes_total + " bytes loaded");
-                      self.drawStatus("Loading data ... " + Math.round(bytes_loaded / bytes_total * 100) + "%");
-                      });
-                    builder.onDataDecodingProgress(function(frames_loaded, frames_total) {
-                      console.log("  frames decoded (" + frames_total + " total)");
-                      self.drawStatus("Decoding data ... " + Math.round(frames_loaded / frames_total * 100) + "%");
-                      });
-                    builder.loadDataAsync(
-                      headerUrl,
-                      dataUrls[dataUrlIdx],
-                      function(imageStack) {
-                        builder.dispose();
-                        self.drawStatus("READY");
-                        self.imageStack = imageStack;
-                        self.onImageStackReady();
-                      },
-                      function(description) {
-                        console.log("FAILED: " + description);
-                        self.drawStatus("FAILED");
-                        builder.dispose();
-                      },
-                      function(description) {
-                        console.log("Status: " + description);
-                      });
+                  self.controlsBlock.hidden = true;
+                  
+                  if (imageStack)
+                    imageStack.dispose();
+                  if (imageSlice)
+                    imageSlice.dispose();
+                  if (pixelBufferPtr)
+                    ImageStackModule._free(pixelBufferPtr);
+                  var builder = new ImageStackModule.ImageStackBuilder();
+                  builder.onHeaderLoadingProgress(function(bytes_loaded, bytes_total) {
+                    console.log("  [ihdr]: " + bytes_loaded + " of " + bytes_total + " bytes loaded");
+                    self.drawStatus("Loading header ... " + Math.round(bytes_loaded / bytes_total * 100) + "%");
+                    });
+                  builder.onDataLoadingProgress(function(bytes_loaded, bytes_total) {
+                    console.log("  [hevc]: " + bytes_loaded + " of " + bytes_total + " bytes loaded");
+                    self.drawStatus("Loading data ... " + Math.round(bytes_loaded / bytes_total * 100) + "%");
+                    });
+                  builder.onDataDecodingProgress(function(frames_loaded, frames_total) {
+                    console.log("  frames decoded (" + frames_total + " total)");
+                    self.drawStatus("Decoding data ... " + Math.round(frames_loaded / frames_total * 100) + "%");
+                    });
+                  builder.loadDataAsync(
+                    headerUrl,
+                    dataUrls[dataUrlIdx],
+                    function(imageStack) {
+                      builder.dispose();
+                      self.drawStatus("READY");
+                      self.imageStack = imageStack;
+                      self.onImageStackReady();
+                    },
+                    function(description) {
+                      console.log("FAILED: " + description);
+                      self.drawStatus("FAILED");
+                      builder.dispose();
+                    },
+                    function(description) {
+                      console.log("Status: " + description);
+                    });
                 };
                 
                 var invalidateReload = function(idx) {
-                    dataUrlIdx = idx;
-                    loadData();
+                  dataUrlIdx = idx;
+                  loadData();
                 };
                 
                 var invalidateSlider = function(idx) {
-                    sliderRotates = !!idx;
-                    getSlice();
+                  sliderRotates = !!idx;
+                  getSlice();
                 };
             
                 document.addEventListener('DOMContentLoaded', function () {
-                    self.controlsBlock = document.getElementById("controlsBlock");
-                    self.sourceIndex = document.getElementById("source0");
-                    self.indexRange = document.getElementById('indexRange');
-                    self.imageContext = document.getElementById('imageCanvas').getContext('2d');
-                
-                    Module.Info();
-                    
-                    loadData();
+                  self.controlsBlock = document.getElementById("controlsBlock");
+                  self.sourceIndex = document.getElementById("source0");
+                  self.indexRange = document.getElementById('indexRange');
+                  self.imageContext = document.getElementById('imageCanvas').getContext('2d');
+
+                  if (typeof WebAssembly !== 'object' || !testSafariWebAssemblyBug()) {
+                    console.log("No WebAssembly support detected.");
+                    // No WebAssembly support.
+                    loadJavaScriptFile(jsUrl, function () {
+                      moduleType = "asm.js";
+                      ImageStackModule = ImageStackModule({});
+                      onImageStackModuleReady();
+                    });
+                  } else {
+                    console.log("WebAssembly supported.");
+                    loadJavaScriptFile(wasmjsUrl, function () {
+                      var xhr = new XMLHttpRequest();
+                      xhr.open('GET', wasmUrl, true);
+                      xhr.responseType = 'arraybuffer';
+                      xhr.onload = function () {
+                        moduleType = "wasm";
+                        ImageStackModule = ImageStackModule({'wasmBinary':xhr.response, 'onRuntimeInitialized':onImageStackModuleReady});
+                      };
+                      xhr.send(null);
+                    });
+                  }
                 });
             </script>
         </head>

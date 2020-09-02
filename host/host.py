@@ -23,9 +23,13 @@ def send_vjs():
 def send_js():
     return app.send_static_file('ImageStack.js')
 
-@app.route('/ImageStack.worker.js')
-def send_worker_js():
-    return app.send_static_file('ImageStack.worker.js')
+@app.route('/ImageStackWasm.js')
+def send_wasm_js():
+    return app.send_static_file('ImageStackWasm.js')
+
+@app.route('/ImageStackWasm.wasm')
+def send_wasm():
+    return app.send_static_file('ImageStackWasm.wasm')
  
 @app.route('/')
 def root():
