@@ -139,22 +139,36 @@ namespace itkjs
                   throw std::runtime_error("Invalid input data");
                 int bpp_y_diff = 16 - bpp_y;
                 const uint16_t* p_y16 = reinterpret_cast<const uint16_t*>(p_y);
-                for (unsigned i = 0, sz = width * height; i < sz; ++i)
+                for (int h = 0; h < height; ++h)
                   {
-                  *data.p_buffer16 = *p_y16 << bpp_y_diff;
-                  ++data.p_buffer16;
-                  ++p_y16;
+                  int w = 0;
+                  for (; w < width; ++w)
+                    {
+                    *data.p_buffer16 = *p_y16 << bpp_y_diff;
+                    ++data.p_buffer16;
+                    ++p_y16;
+                    }
+                  int width_padding = floor((width + 1) / 2) * 2;
+                  for (; w < width_padding; ++w)
+                    ++p_y16;
                   }
                 }
               else
                 {
                 if ((bpp_y != 8) || data.header.component_size != 1)
                   throw std::runtime_error("Invalid input data");
-                for (unsigned i = 0, sz = width * height; i < sz; ++i)
+                for (int h = 0; h < height; ++h)
                   {
-                  *data.p_buffer = *p_y;
-                  ++data.p_buffer;
-                  ++p_y;
+                  int w = 0;
+                  for (; w < width; ++w)
+                    {
+                    *data.p_buffer = *p_y;
+                    ++data.p_buffer;
+                    ++p_y;
+                    }
+                  int width_padding = floor((width + 1) / 2) * 2;
+                  for (; w < width_padding; ++w)
+                    ++p_y;
                   }
                 }
 
