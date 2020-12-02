@@ -118,10 +118,11 @@ namespace itkjs
               if (!p_img)
                 continue;
 
-              int width = de265_get_image_width(p_img, 0);
-              int height = de265_get_image_height(p_img, 0);
-              if ((width != data.header.dimensions[0]) || (height != data.header.dimensions[1]))
-                throw std::runtime_error("Invalid input data");
+              int image_width = de265_get_image_width(p_img, 0);
+              int image_height = de265_get_image_height(p_img, 0);
+			  
+			  int frame_width = data.header.dimensions[0];
+			  int frame_height = data.header.dimensions[1];
 
               de265_chroma chroma = de265_get_chroma_format(p_img);
               if (chroma != de265_chroma_mono)
@@ -139,37 +140,43 @@ namespace itkjs
                   throw std::runtime_error("Invalid input data");
                 int bpp_y_diff = 16 - bpp_y;
                 const uint16_t* p_y16 = reinterpret_cast<const uint16_t*>(p_y);
-                for (int h = 0; h < height; ++h)
-                  {
+                int h = 0;
+                for (; h < frame_height; ++h)
+                  {				  
                   int w = 0;
-                  for (; w < width; ++w)
+                  for (; w < frame_width; ++w)
                     {
                     *data.p_buffer16 = *p_y16 << bpp_y_diff;
                     ++data.p_buffer16;
                     ++p_y16;
                     }
-                  int width_padding = floor((width + 1) / 2) * 2;
+                  int width_padding = floor((image_width + 1) / 2) * 2;
                   for (; w < width_padding; ++w)
                     ++p_y16;
                   }
+				for (; h < image_height; ++h)
+                  ++p_y16;
                 }
               else
                 {
                 if ((bpp_y != 8) || data.header.component_size != 1)
                   throw std::runtime_error("Invalid input data");
-                for (int h = 0; h < height; ++h)
+                int h = 0;
+                for (; h < frame_height; ++h)
                   {
                   int w = 0;
-                  for (; w < width; ++w)
+                  for (; w < frame_width; ++w)
                     {
                     *data.p_buffer = *p_y;
                     ++data.p_buffer;
                     ++p_y;
                     }
-                  int width_padding = floor((width + 1) / 2) * 2;
+                  int width_padding = floor((image_width + 1) / 2) * 2;
                   for (; w < width_padding; ++w)
                     ++p_y;
                   }
+				for (; h < image_height; ++h)
+                  ++p_y;
                 }
 
               ++data.num_frames;

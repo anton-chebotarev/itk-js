@@ -151,7 +151,7 @@ namespace itk
 
   std::string FFmpegImageIO::_GetDatafilePath() const
     {
-    return itksys::SystemTools::GetParentDirectory(this->GetFileName()) + _GetDatafileName();
+    return itksys::SystemTools::GetParentDirectory(this->GetFileName()) + "//" + _GetDatafileName();
     }
 
   std::string FFmpegImageIO::_GetDatafileExtension() const
@@ -193,7 +193,6 @@ namespace itk
     return ss.str();
     }
 
-
   std::string FFmpegImageIO::_GetFFmpegEncodingParametersStr() const
     {
     std::stringstream ss;
@@ -207,15 +206,21 @@ namespace itk
           ss << " -pix_fmt gray16le";
         return ss.str();
       case Encoding::h264:
-        ss << "-c:v libx264 -crf 0";
+        ss << "-c:v libx264";
+        if (this->GetUseCompression())
+          ss << " -crf 17 -g 0 -bf 0";
+        else
+          ss << " -crf 0 -g 0 -bf 0";
         if (this->GetPixelSize() == 2)
           throw std::runtime_error("Unsupported Pixel Size"); //ss << " -pix_fmt gray10le";
         return ss.str();
       case Encoding::h265:
+        ss << "-c:v libx265 -x265-params";
         if (this->GetUseCompression())
-          ss << "-c:v libx265 -preset slow -x265-params \"qp=0:qpstep=1:cu-lossless=1:psy-rd=5.0:psy-rdoq=10.0:rc-grain=1:aq-mode=0:cutree=0:ipratio=1.0:pbratio=1.0:sao=0:rskip=0:no-deblock=1:no-sao=1:no-weightp=1:no-weightb=1:no-b-intra=1:bframes=0:keyint=1:scenecut=0\"";
+          ss << " qp=0:bframes=0:keyint=1:preset=veryslow:crf=0:cu-lossless=1";
         else
-          ss << "-c:v libx265 -x265-params lossless=1";
+          ss << " lossless=1";
+        ss << " -vf pad=ceil(iw/32)*32:ceil(ih/32)*32";
         if (this->GetPixelSize() == 2)
           ss << " -pix_fmt gray12le";
         return ss.str();
@@ -458,6 +463,9 @@ namespace itk
 
     if (this->GetPixelType() != SCALAR)
       throw std::runtime_error("Unsupported Pixel Type");
+
+    if (this->GetDimensions(0) < 32 || this->GetDimensions(1) < 32)
+      throw std::runtime_error("Image size is too small");
 
     SECURITY_ATTRIBUTES sa = {};
     sa.nLength = sizeof(SECURITY_ATTRIBUTES);
